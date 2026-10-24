@@ -156,6 +156,8 @@ final class Config {
     final boolean showStats;
     /** game_day: the package of an add-on that publishes each team's next game (GameDay); empty = off. */
     final String gameDay;
+    /** A Now Playing pill in the top bar for media playing in another app (config.xml now_playing). */
+    final boolean nowPlaying;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
@@ -297,7 +299,7 @@ final class Config {
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
                    int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap,
-                   boolean settingsKeyClearTask) {
+                   boolean settingsKeyClearTask, boolean nowPlaying) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -332,6 +334,7 @@ final class Config {
         this.dateBelowClock = dateBelowClock;
         this.vpnPill = vpnPill;
         this.locale = locale;
+        this.nowPlaying = nowPlaying;
         this.greetingName = greetingName;
         this.moduleCards = moduleCards;
         this.reducedMotion = reducedMotion;
@@ -495,6 +498,7 @@ final class Config {
         boolean homeSettings = res.getBoolean(R.bool.show_home_settings_shortcut);
         boolean showStats = res.getBoolean(R.bool.show_stats);
         String gameDay = res.getString(R.string.game_day).trim();
+        boolean nowPlaying = res.getBoolean(R.bool.now_playing);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -611,6 +615,7 @@ final class Config {
             homeSettings = bool(json, "show_home_settings_shortcut", homeSettings);
             showStats = bool(json, "show_stats", showStats);
             gameDay = string(json, "game_day", gameDay);
+            nowPlaying = bool(json, "now_playing", nowPlaying);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -727,7 +732,7 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
-                settingsKeyClearTask);
+                settingsKeyClearTask, nowPlaying);
     }
 
     /**
