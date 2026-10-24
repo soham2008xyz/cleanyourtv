@@ -351,6 +351,16 @@
          "show_stats": true. Nothing is read, and the clock does not move, while this is false. -->
     <bool name="show_stats">false</bool>
 
+    <!-- A Now Playing pill in the top bar while Spotify or another app plays media in the background: the
+         artwork, the title and the artist, and OK opens the app that is playing. Off by default; a theme can set
+         "now_playing": true. It reads the media sessions, which Android allows only to a notification listener
+         the owner has granted, and TVs have no screen for that, so grant it once over ADB, after Home has come
+         up once with this on (that is when the listener is switched on):
+           cmd notification allow_listener com.gathin.tvhome/com.gathin.tvhome.NowPlayingListener
+         Without the grant the pill stays hidden. While this is false the listener stays disabled and nothing
+         is read. -->
+    <bool name="now_playing">false</bool>
+
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm
          horizon glow around sunrise and sunset. 0 keeps the plain background (the default); 1 to 100
          sets its opacity. Around 60 reads clearly without hiding a wallpaper. Can also be set with

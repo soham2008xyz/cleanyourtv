@@ -3,7 +3,9 @@ package com.gathin.tvhome;
 import android.animation.ArgbEvaluator;
 import android.animation.ValueAnimator;
 import android.app.Activity;
+import android.app.ActivityOptions;
 import android.app.Dialog;
+import android.app.PendingIntent;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -18,17 +20,21 @@ import android.content.pm.ChangedPackages;
 import android.content.res.ColorStateList;
 import android.content.res.Resources;
 import android.graphics.Bitmap;
+import android.graphics.BitmapShader;
 import android.graphics.Canvas;
 import android.graphics.Color;
 import android.graphics.LinearGradient;
 import android.graphics.Paint;
 import android.graphics.RadialGradient;
 import android.graphics.Rect;
+import android.graphics.RectF;
 import android.graphics.Shader;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.Drawable;
 import android.graphics.drawable.GradientDrawable;
+import android.media.MediaMetadata;
+import android.media.session.MediaController;
 import android.media.tv.TvContract;
 import android.media.tv.TvInputInfo;
 import android.media.tv.TvInputManager;
@@ -189,6 +195,15 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     private TextView raceKicker, raceHeadline, raceSessions;
     /** config.xml show_stats, overridable by a theme. Off: the line is gone and nothing is read. */
     private boolean showStats;
+    /** config.xml now_playing: the top bar's Now Playing pill. Null while the key is off (or under top_menu). */
+    private NowPlaying nowPlaying;
+    private TextView btnNowPlaying;
+    private MediaController nowPlayingController;
+    /** Package, title and artist the pill's artwork was made for, so an unchanged song is not scaled again. */
+    private String nowPlayingArtKey;
+    private Drawable nowPlayingArt;
+    /** Between onResume and onPause: the session reader starts once Home's first frame is drawn. */
+    private boolean nowPlayingWanted;
     private boolean shamsi;
     /** greeting_name: said after the greeting, which is shown in capitals. */
     private String greetingName = "";
@@ -382,6 +397,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (cfg.restoreKeyServices) ServiceRepair.restore(this);
         settingsRevision = settingsRevision();
         applyViewInputsHandler(cfg.handleViewInputs);
+        applyNowPlayingListener(cfg.nowPlaying && !cfg.topMenu);
         settingsKeycodes = cfg.settingsKeycodes;
         settingsKeyPanel = cfg.settingsKeyPanel;
         COLUMNS = cfg.columns;
@@ -709,6 +725,11 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps);
+        btnNowPlaying = findViewById(R.id.btnNowPlaying);
+        if (cfg.nowPlaying && !cfg.topMenu) {
+            btnNowPlaying.setOnClickListener(v -> openNowPlaying());
+            nowPlaying = new NowPlaying(this, handler, this::showNowPlaying);
+        }
         iconOnlyButtons = cfg.iconOnlyButtons;
         topMenu = cfg.topMenu;
         wifiIconOnly = iconOnlyButtons && cfg.wifiLabelWidth <= 0;
@@ -767,13 +788,14 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
+        btnNowPlaying.setOnKeyListener(pillKeys);
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
         btnLibraryTop.setOnKeyListener(pillKeys);
         for (View button : topAppButtons) button.setOnKeyListener(pillKeys);
         if (advancedEffects) {
-            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnWifi, btnReorder, btnLibraryTop, btnSettings));
+            List<View> pills = new ArrayList<>(Arrays.asList(btnInputs, btnNowPlaying, btnWifi, btnReorder, btnLibraryTop, btnSettings));
             pills.addAll(topAppButtons);
             for (View button : pills) {
                 button.setOnFocusChangeListener((view, focused) -> view.animate()
@@ -828,6 +850,124 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         if (pm.getComponentEnabledSetting(handler) != want) {
             pm.setComponentEnabledSetting(handler, want, PackageManager.DONT_KILL_APP);
         }
+    }
+
+    /**
+     * now_playing: switch NowPlayingListener, the notification access behind the Now Playing pill, on or off. It is
+     * disabled in the manifest, so with the key off Android never binds it. Written only when the state differs.
+     */
+    private void applyNowPlayingListener(boolean on) {
+        ComponentName listener = new ComponentName(this, NowPlayingListener.class);
+        PackageManager pm = getPackageManager();
+        int want = on ? PackageManager.COMPONENT_ENABLED_STATE_ENABLED : PackageManager.COMPONENT_ENABLED_STATE_DEFAULT;
+        if (pm.getComponentEnabledSetting(listener) != want) {
+            pm.setComponentEnabledSetting(listener, want, PackageManager.DONT_KILL_APP);
+        }
+    }
+
+    /** Reads the playing session (now_playing) while Home is resumed; its binder calls wait for the first frame. */
+    private void startNowPlaying() {
+        if (nowPlaying != null && nowPlayingWanted) nowPlaying.start();
+    }
+
+    /** The Now Playing pill: the session's artwork (or the app's icon), "Title · Artist", gone when nothing plays. */
+    private void showNowPlaying(MediaController playing) {
+        nowPlayingController = playing;
+        if (playing == null) {
+            if (btnNowPlaying.getVisibility() != View.VISIBLE) return;
+            boolean focused = btnNowPlaying.isFocused();
+            btnNowPlaying.setVisibility(View.GONE);
+            nowPlayingArtKey = null;
+            nowPlayingArt = null;
+            // Focus stays in the bar, on the pill next to it, instead of dropping out of the window.
+            if (focused) (btnInputs.getVisibility() == View.VISIBLE ? btnInputs : firstTopButton()).requestFocus();
+            return;
+        }
+        PackageManager pm = getPackageManager();
+        CharSequence app = playing.getPackageName();
+        Drawable appIcon = null;
+        try {
+            ApplicationInfo info = pm.getApplicationInfo(playing.getPackageName(), 0);
+            app = info.loadLabel(pm);
+            appIcon = info.loadIcon(pm);
+        } catch (PackageManager.NameNotFoundException ignored) {
+        }
+        MediaMetadata meta = playing.getMetadata();
+        CharSequence title = null, artist = null;
+        Bitmap art = null;
+        if (meta != null) {
+            title = meta.getText(MediaMetadata.METADATA_KEY_TITLE);
+            if (TextUtils.isEmpty(title)) title = meta.getText(MediaMetadata.METADATA_KEY_DISPLAY_TITLE);
+            artist = meta.getText(MediaMetadata.METADATA_KEY_ARTIST);
+            if (TextUtils.isEmpty(artist)) artist = meta.getText(MediaMetadata.METADATA_KEY_ALBUM_ARTIST);
+            if (TextUtils.isEmpty(artist)) artist = meta.getText(MediaMetadata.METADATA_KEY_DISPLAY_SUBTITLE);
+            art = meta.getBitmap(MediaMetadata.METADATA_KEY_ART);
+            if (art == null) art = meta.getBitmap(MediaMetadata.METADATA_KEY_ALBUM_ART);
+            if (art == null) art = meta.getBitmap(MediaMetadata.METADATA_KEY_DISPLAY_ICON);
+        }
+        String line = NowPlaying.line(title, artist);
+        CharSequence text = line != null ? line : app;
+        if (!TextUtils.equals(btnNowPlaying.getText(), text)) btnNowPlaying.setText(text);
+        btnNowPlaying.setContentDescription(line != null ? app + ", " + line : app);
+
+        int size = Math.round(26 * density);
+        // Each getMetadata() is a fresh copy, bitmap included, so the artwork is matched by song, not by object.
+        String artKey = playing.getPackageName() + '\n' + title + '\n' + artist;
+        Drawable icon;
+        if (art != null) {
+            if (!artKey.equals(nowPlayingArtKey) || nowPlayingArt == null) {
+                nowPlayingArtKey = artKey;
+                nowPlayingArt = new BitmapDrawable(getResources(), roundedArt(art, size, 5 * density));
+            }
+            icon = nowPlayingArt;
+        } else {
+            nowPlayingArtKey = null;
+            nowPlayingArt = null;
+            icon = appIcon;
+        }
+        if (icon != null) icon.setBounds(0, 0, size, size);
+        btnNowPlaying.setCompoundDrawablesRelative(icon, null, null, null);
+        btnNowPlaying.setCompoundDrawableTintList(null);   // artwork and app logos keep their colours
+        btnNowPlaying.setVisibility(View.VISIBLE);
+    }
+
+    /** The artwork as a small square with rounded corners; the session's full-size bitmap is not kept. */
+    private static Bitmap roundedArt(Bitmap art, int size, float radius) {
+        Bitmap out = Bitmap.createBitmap(size, size, Bitmap.Config.ARGB_8888);
+        Bitmap scaled = Bitmap.createScaledBitmap(art, size, size, true);
+        Paint paint = new Paint(Paint.ANTI_ALIAS_FLAG);
+        paint.setShader(new BitmapShader(scaled, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP));
+        new Canvas(out).drawRoundRect(new RectF(0, 0, size, size), radius, radius, paint);
+        if (scaled != art) scaled.recycle();
+        return out;
+    }
+
+    /** OK on the Now Playing pill: the playing app's own screen for the session, else the app itself. */
+    private void openNowPlaying() {
+        MediaController playing = nowPlayingController;
+        if (playing == null) return;
+        PendingIntent session = playing.getSessionActivity();
+        if (session != null) {
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+                    // Android 14: the app that made the intent is in the background, so Home lends its own
+                    // right to start an activity, as the user pressed OK here.
+                    ActivityOptions options = ActivityOptions.makeBasic();
+                    options.setPendingIntentBackgroundActivityStartMode(ActivityOptions.MODE_BACKGROUND_ACTIVITY_START_ALLOWED);
+                    session.send(this, 0, null, null, null, null, options.toBundle());
+                } else {
+                    session.send();
+                }
+                return;
+            } catch (PendingIntent.CanceledException ignored) {
+                // The app dropped its session screen: open the app instead.
+            }
+        }
+        PackageManager pm = getPackageManager();
+        Intent launch = pm.getLeanbackLaunchIntentForPackage(playing.getPackageName());
+        if (launch == null) launch = pm.getLaunchIntentForPackage(playing.getPackageName());
+        if (launch != null) open(launch);
+        else Toast.makeText(this, R.string.not_available, Toast.LENGTH_SHORT).show();
     }
 
     /**
@@ -943,11 +1083,13 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         // when the network or the inputs change, so this refresh only catches anything missed. Its binder calls
         // (about 7 ms on a TCL C755, most of it WifiManager.getConnectionInfo) would hold up the first frame back
         // on Home, so after the first resume it runs once that frame is drawn.
+        nowPlayingWanted = true;
         if (pillsShown) {
             refreshPillsAfterNextDraw();
         } else {
             updateWifiLabel();
             updateInputsButton();
+            startNowPlaying();
             pillsShown = true;
         }
         if (showStats) startStats();
@@ -1128,6 +1270,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         heroArt.animate().cancel();
         handler.removeCallbacks(minuteTick);
         stopStats();
+        nowPlayingWanted = false;
+        if (nowPlaying != null) nowPlaying.stop();
         if (diya != null) diya.stop();
         cancelPendingFocusScroll();
         // Nothing of ours stays on screen over another app; an undecided prompt simply returns next time.
@@ -2512,6 +2656,7 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
                     if (isDestroyed()) return;
                     updateWifiLabel();
                     updateInputsButton();
+                    startNowPlaying();
                 });
                 return true;
             }

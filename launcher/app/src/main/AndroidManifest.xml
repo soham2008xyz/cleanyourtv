@@ -201,6 +201,19 @@
             </intent-filter>
         </service>
 
+        <!-- now_playing: the notification access that lets Home read other apps' media sessions; see
+             NowPlayingListener. Disabled here and switched on by MainActivity only while now_playing is on. -->
+        <service
+            android:name=".NowPlayingListener"
+            android:label="@string/app_name"
+            android:exported="true"
+            android:enabled="false"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE">
+            <intent-filter>
+                <action android:name="android.service.notification.NotificationListenerService" />
+            </intent-filter>
+        </service>
+
         <!-- tools/theme.sh writes the theme through this where the shell can't reach Android/data;
              see ThemeProvider. WRITE_SECURE_SETTINGS: the adb shell has it, ordinary apps don't. -->
         <provider

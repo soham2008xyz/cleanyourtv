@@ -369,6 +369,17 @@
                     android:drawableStart="@drawable/ic_wifi"
                     android:nextFocusDown="@+id/grid" />
 
+                <!-- now_playing: artwork, title and artist of what another app is playing; shown only while it plays. -->
+                <TextView
+                    android:id="@+id/btnNowPlaying"
+                    style="@style/TopButton"
+                    android:paddingStart="8dp"
+                    android:maxWidth="320dp"
+                    android:singleLine="true"
+                    android:ellipsize="end"
+                    android:visibility="gone"
+                    android:nextFocusDown="@+id/grid" />
+
                 <TextView
                     android:id="@+id/btnInputs"
                     style="@style/TopButton"
