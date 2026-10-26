@@ -21,6 +21,11 @@
     <!-- YaOS (Yandex TV OS): HDMI, AV and the tuner all play in com.yandex.tv.live, whose activities require
          this permission (protection level normal, so it is granted at install). Ignored on other TVs. -->
     <uses-permission android:name="yandex.tv.permission.ACCESS_TV_SOURCE" />
+    <!-- Fire OS 6 Home (FireHomeWatcher): reads the system log for Home presses. A development permission, never
+         granted unless build-and-install runs with FIRE_OS_HOME_WATCHER=1; without it the watcher never starts. -->
+    <uses-permission android:name="android.permission.READ_LOGS"
+        tools:ignore="ProtectedPermissions" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->
@@ -71,6 +76,7 @@
     </queries>
 
     <application
+        android:name=".App"
         android:label="@string/app_name"
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/banner"
@@ -252,5 +258,16 @@
                 android:name="android.accessibilityservice"
                 android:resource="@xml/input_key_service" />
         </service>
+
+        <!-- Fire OS 6 Home: follows the system log and brings this launcher back over Amazon's home. Starts only
+             when READ_LOGS was granted (FIRE_OS_HOME_WATCHER=1 in build-and-install). -->
+        <service android:name=".FireHomeWatcher" android:exported="false" />
+        <receiver android:name=".FireHomeWatcher$BootReceiver" android:exported="true">
+            <!-- BOOT_COMPLETED reaches receivers one at a time, highest priority first; at the default priority
+                 this one came after dozens of Amazon apps, about 40 s after Amazon's home was up (AFTMM). -->
+            <intent-filter android:priority="999">
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 </manifest>

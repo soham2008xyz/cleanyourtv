@@ -69,6 +69,10 @@ fi
 # the stock home, and the default applicationId is refused as Home on that firmware.
 # docs/devices/oppo-k9-55-oppocnm632.md.
 KNOWN_STOCK_LAUNCHERS="com.google.android.tvlauncher com.google.android.apps.tv.launcherx com.google.android.leanbacklauncher com.mitv.tvhome"
+# FIRE_OS_HOME_WATCHER=1 (Fire OS 6): Amazon's launcher is protected and keeps Home, so nothing is disabled;
+# READ_LOGS is granted instead and FireHomeWatcher brings this launcher back after each Home press.
+FIRE_OS_HOME_WATCHER="${FIRE_OS_HOME_WATCHER:-0}"
+if [ "$FIRE_OS_HOME_WATCHER" = 1 ]; then STOCK_LAUNCHER=none; fi
 if [ -z "${STOCK_LAUNCHER:-}" ]; then
   HOME_PKG=$("$PY" -I ../tools/tv.py 'cmd package resolve-activity --brief -a android.intent.action.MAIN -c android.intent.category.HOME' \
     | tail -n 1 | tr -d '\r' | cut -d/ -f1) || {
@@ -124,6 +128,10 @@ case "$OUT" in
     exit 1 ;;
   *) echo "ERROR: pm install failed; the stock launcher was left untouched." >&2; exit 1 ;;
 esac
+# Granted before the launcher starts below, so its FireHomeWatcher comes up with the permission.
+if [ "$FIRE_OS_HOME_WATCHER" = 1 ]; then
+  "$PY" -I ../tools/tv.py 'pm grant com.gathin.tvhome android.permission.READ_LOGS && echo read-logs-granted'
+fi
 # Replacing the launcher while it is Home lets Android restart it mid-update, and on a TCL G03
 # (Android 11) that instance came up with mOccludesParent=false: Home then left the previous app or
 # HDMI picture on screen (#1101). `am start` below would only reuse it, so stop it first; the start
@@ -197,7 +205,10 @@ rollback_home() {
 # system_server (see examples/xiaomi-tv-a-pro-2026). So check where Home ended up, and put the
 # stock launcher back if it is not ours.
 HOME_NOW=$(query_home)
+# Fire OS keeps Home on Amazon's launcher whatever set-home-activity says, and nothing was disabled to roll back.
+[ "$FIRE_OS_HOME_WATCHER" = 1 ] && HOME_NOW=fire-os
 case "$HOME_NOW" in
+  fire-os) echo "Fire OS: Home stays with the Amazon launcher; FireHomeWatcher brings this launcher back over it." ;;
   com.gathin.tvhome/*) echo "Home now resolves to $HOME_NOW" ;;
   *)
     if [ -z "$HOME_NOW" ]; then

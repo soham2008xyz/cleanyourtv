@@ -11,7 +11,8 @@ android {
         // Xiaomi: docs/devices/xiaomi-mitv-aetp0-dofus.md (com.ts.launcher).
         // ColorOS TV: docs/devices/oppo-k9-55-oppocnm632.md (com.oneplus.tv.launcher2).
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
-        minSdk 26
+        // Fire OS 6 fork: 25 (Android 7.1). java.time comes from core library desugaring below.
+        minSdk 25
         targetSdk 34
         versionCode 13
         versionName '3.4'
@@ -37,6 +38,7 @@ android {
     }
 
     compileOptions {
+        coreLibraryDesugaringEnabled true
         sourceCompatibility JavaVersion.VERSION_17
         targetCompatibility JavaVersion.VERSION_17
     }
@@ -45,6 +47,8 @@ android {
 dependencies {
     implementation 'androidx.recyclerview:recyclerview:1.3.2'
     implementation 'androidx.dynamicanimation:dynamicanimation:1.0.0'
+    // java.time on Android 7 (minSdk 25); R8 keeps only what the launcher calls.
+    coreLibraryDesugaring 'com.android.tools:desugar_jdk_libs:2.0.4'
     // Test only (never in the APK): plain JVM tests for the module card validators, src/test.
     testImplementation 'junit:junit:4.13.2'
 }
