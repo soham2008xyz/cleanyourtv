@@ -725,9 +725,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps);
-        btnNowPlaying = findViewById(R.id.btnNowPlaying);
+        // now_playing_position below_date: the same text and artwork on a line under the date, which takes no focus.
+        btnNowPlaying = findViewById(cfg.nowPlayingBelowDate ? R.id.nowPlayingLine : R.id.btnNowPlaying);
         if (cfg.nowPlaying && !cfg.topMenu) {
-            btnNowPlaying.setOnClickListener(v -> openNowPlaying());
+            if (!cfg.nowPlayingBelowDate) btnNowPlaying.setOnClickListener(v -> openNowPlaying());
             nowPlaying = new NowPlaying(this, handler, this::showNowPlaying);
         }
         iconOnlyButtons = cfg.iconOnlyButtons;

@@ -5,7 +5,9 @@ import android.media.session.PlaybackState;
 import org.junit.Test;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNull;
+import static org.junit.Assert.assertTrue;
 
 public class NowPlayingTest {
     @Test
@@ -34,5 +36,14 @@ public class NowPlayingTest {
         assertEquals("Blue", NowPlaying.line("Blue", "Blue"));
         assertEquals("Joni Mitchell", NowPlaying.line(null, "Joni Mitchell"));
         assertNull(NowPlaying.line(" ", null));
+    }
+
+    @Test
+    public void onlyBelowDateMovesTheLine() {
+        assertTrue(Config.nowPlayingBelowDate("below_date"));
+        assertTrue(Config.nowPlayingBelowDate(" Below_Date "));
+        assertFalse(Config.nowPlayingBelowDate("top_bar"));
+        assertFalse(Config.nowPlayingBelowDate("under"));
+        assertFalse(Config.nowPlayingBelowDate(null));
     }
 }
