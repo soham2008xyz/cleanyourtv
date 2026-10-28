@@ -158,6 +158,8 @@ final class Config {
     final String gameDay;
     /** A Now Playing pill in the top bar for media playing in another app (config.xml now_playing). */
     final boolean nowPlaying;
+    /** now_playing_position below_date: the Now Playing line under the date instead of a top-bar pill. */
+    final boolean nowPlayingBelowDate;
     /** App library pill after the last Home row (config.xml app_library). */
     final boolean appLibrary;
     /** OK directly toggles Home membership in the library (app_library_selection). */
@@ -299,7 +301,7 @@ final class Config {
                    boolean handleViewInputs, boolean tileMenu, boolean dockEvenPadding, boolean dockBand, boolean cinematicDots, boolean cinematicWhiteFocus, boolean wifiStatusColor, int cinematicScrim, int cinematicArt,
                    Map<String, Set<String>> wallpaperMoods, boolean gamepadPassthrough, boolean consumeVolumeKeys, boolean homeIgnoreChannelKeys, boolean powerOnHome, boolean homeLongPressHome, boolean wifiStatusWarnings, List<String> topBarApps, boolean showGreeting, boolean headerWhite, boolean clockWallpaper, int clockWallpaperDim, boolean clockGlow, String glassStyle, boolean singleRow, boolean dockBandAll, boolean lunarDate, int lunarUtcOffset, boolean dateBelowClock, boolean vpnPill, String locale, boolean powerOnHomeAlways, boolean inputsConnectedOnly, boolean inputsCecStateOnly,
                    int openOnStartNetworkWait, boolean openOnStartOnWake, boolean iconOnlyVpn, String clockFormat, boolean backOpensClock, boolean glowSnap,
-                   boolean settingsKeyClearTask, boolean nowPlaying) {
+                   boolean settingsKeyClearTask, boolean nowPlaying, boolean nowPlayingBelowDate) {
         this.handleViewInputs = handleViewInputs;
         this.tileMenu = tileMenu;
         this.inputKeycodes = inputKeycodes;
@@ -335,6 +337,7 @@ final class Config {
         this.vpnPill = vpnPill;
         this.locale = locale;
         this.nowPlaying = nowPlaying;
+        this.nowPlayingBelowDate = nowPlayingBelowDate;
         this.greetingName = greetingName;
         this.moduleCards = moduleCards;
         this.reducedMotion = reducedMotion;
@@ -421,6 +424,11 @@ final class Config {
         this.glassStyle = glassStyle(glassStyle);
     }
 
+    /** now_playing_position: below_date puts the line under the date; anything else keeps the top-bar pill. */
+    static boolean nowPlayingBelowDate(String value) {
+        return value != null && "below_date".equalsIgnoreCase(value.trim());
+    }
+
     /** A known glow_style, or radial (the default) for anything else. */
     static String glowStyle(String value) {
         return value != null && GLOW_HORIZON.equalsIgnoreCase(value.trim()) ? GLOW_HORIZON : GLOW_RADIAL;
@@ -499,6 +507,7 @@ final class Config {
         boolean showStats = res.getBoolean(R.bool.show_stats);
         String gameDay = res.getString(R.string.game_day).trim();
         boolean nowPlaying = res.getBoolean(R.bool.now_playing);
+        String nowPlayingPosition = res.getString(R.string.now_playing_position);
         boolean library = res.getBoolean(R.bool.app_library);
         boolean librarySelection = res.getBoolean(R.bool.app_library_selection);
         boolean libraryOkOpens = res.getBoolean(R.bool.library_ok_opens);
@@ -616,6 +625,7 @@ final class Config {
             showStats = bool(json, "show_stats", showStats);
             gameDay = string(json, "game_day", gameDay);
             nowPlaying = bool(json, "now_playing", nowPlaying);
+            nowPlayingPosition = string(json, "now_playing_position", nowPlayingPosition);
             library = bool(json, "app_library", library);
             librarySelection = bool(json, "app_library_selection", librarySelection);
             libraryOkOpens = bool(json, "library_ok_opens", libraryOkOpens);
@@ -732,7 +742,7 @@ final class Config {
                 Math.max(0, Math.min(90, clockWallpaperDim)), clockGlow, glassStyle, singleRow && dockRow, dockBandAll, lunar, lunarOffset,
                 dateBelowClock, vpnPill, locale, powerOnHomeAlways, inputsConnectedOnly, inputsCecStateOnly,
                 Math.max(0, Math.min(600, openOnStartNetworkWait)), openOnStartOnWake, iconOnlyVpn, clockFormat, backOpensClock, glowSnap,
-                settingsKeyClearTask, nowPlaying);
+                settingsKeyClearTask, nowPlaying, nowPlayingBelowDate(nowPlayingPosition));
     }
 
     /**
