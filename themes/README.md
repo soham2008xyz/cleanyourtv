@@ -93,7 +93,7 @@ A new key needs one there in the same pull request.
 | `show_home_settings_shortcut` | bool | Keep the optional Default-home tile visible when the TV has a home picker; false by default |
 | `show_stats` | bool | One line under the clock with CPU, free memory and free storage. Off unless set |
 | `now_playing` | bool | A Now Playing pill in the top bar (artwork, title, artist) while another app plays media; OK opens that app. Needs notification access granted once over ADB (see `config.xml`). Off unless set |
-| `now_playing_position` | string | Where `now_playing` shows: `top_bar` (a pill, default) or `below_date` (a line under the date at the top left, which takes no focus; OK-to-open stays with `top_bar`) |
+| `now_playing_position` | string | Where `now_playing` shows: `top_bar` (a pill, default) or `below_date` (a line under the date at the top left); OK on either opens the playing app |
 | `handle_view_inputs` | bool | Answer the system input switcher (`VIEW_INPUTS`, what the remote's Input button becomes) with the Inputs menu, for sets whose stock launcher was its only handler (Hisense huangshan); `false` by default so a TV with its own input picker never gets a chooser |
 | `background_color` | `#RRGGBB` | Colour behind everything; black by default |
 | `sky_intensity` | 0 to 100 | Time-of-day backdrop: a dark gradient that follows the clock, 0 hides it (default) |

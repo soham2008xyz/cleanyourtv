@@ -362,8 +362,8 @@
          is read. -->
     <bool name="now_playing">true</bool>
     <!-- Where the Now Playing line sits: top_bar (a pill among the top buttons, the default) or below_date (a line
-         under the clock and date, at the top left). below_date only shows what plays: it takes no focus, so the
-         D-pad moves as before, and OK-to-open stays with top_bar. A theme can set "now_playing_position". -->
+         under the clock and date, at the top left). Either way OK on it opens the app that plays; on the line, Up
+         goes to the top bar and Down back to the dock. A theme can set "now_playing_position". -->
     <string name="now_playing_position" translatable="false">top_bar</string>
 
     <!-- Time-of-day backdrop behind everything: a dark gradient that follows the clock, with a warm

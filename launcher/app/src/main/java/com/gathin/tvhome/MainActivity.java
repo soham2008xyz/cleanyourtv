@@ -725,10 +725,10 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
         });
         btnLibraryTop.setVisibility(cfg.libraryButton && cfg.appLibrary ? View.VISIBLE : View.GONE);
         addTopBarApps(cfg.topBarApps);
-        // now_playing_position below_date: the same text and artwork on a line under the date, which takes no focus.
+        // now_playing_position below_date: the same text and artwork on a line under the date.
         btnNowPlaying = findViewById(cfg.nowPlayingBelowDate ? R.id.nowPlayingLine : R.id.btnNowPlaying);
         if (cfg.nowPlaying && !cfg.topMenu) {
-            if (!cfg.nowPlayingBelowDate) btnNowPlaying.setOnClickListener(v -> openNowPlaying());
+            btnNowPlaying.setOnClickListener(v -> openNowPlaying());
             nowPlaying = new NowPlaying(this, handler, this::showNowPlaying);
         }
         iconOnlyButtons = cfg.iconOnlyButtons;
@@ -789,7 +789,24 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
             return keyCode == KeyEvent.KEYCODE_DPAD_RIGHT && v.getId() == rightButton;
         };
         btnInputs.setOnKeyListener(pillKeys);
-        btnNowPlaying.setOnKeyListener(pillKeys);
+        if (cfg.nowPlayingBelowDate) {
+            // The line under the date sits between the top bar and the dock: Up to the bar, Down back to the dock
+            // tile, and nowhere sideways, where the focus finder would jump to a pill or a tile.
+            btnNowPlaying.setOnKeyListener((v, keyCode, event) -> {
+                if (event.getAction() != KeyEvent.ACTION_DOWN) return false;
+                if (keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+                    (btnInputs.getVisibility() == View.VISIBLE ? btnInputs : firstTopButton()).requestFocus();
+                    return true;
+                }
+                if (keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                    focusTile(singleRow ? lastFocused : lastFocused % COLUMNS);
+                    return true;
+                }
+                return keyCode == KeyEvent.KEYCODE_DPAD_LEFT || keyCode == KeyEvent.KEYCODE_DPAD_RIGHT;
+            });
+        } else {
+            btnNowPlaying.setOnKeyListener(pillKeys);
+        }
         btnWifi.setOnKeyListener(pillKeys);
         btnSettings.setOnKeyListener(pillKeys);
         btnReorder.setOnKeyListener(pillKeys);
