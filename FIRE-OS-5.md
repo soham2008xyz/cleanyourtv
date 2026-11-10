@@ -34,6 +34,24 @@ Checked on the stick:
 Costs: the APK is about 944 KB, over upstream's 576 KB gate. Each Home press shows a black screen for about 5 s.
 There is one background service, blocked on reading the log.
 
+## Now Playing (`now_playing`), not yet checked on the stick
+
+Merged from the `now-playing` branch. The media session APIs are API 21, so only two calls changed:
+`MediaSessionManager` is fetched by name, and the pill's tint is cleared through `Compat.setCompoundTint`.
+It still needs notification access for `NowPlayingListener`. There's no `cmd` on 5.1, and `settings put secure`
+does nothing here, so write the setting through the content provider. With `now_playing` true, let Home come
+up once first, which switches the listener on. Then read the current value and keep anything already in it,
+joined with `:`:
+
+```bash
+tools/tv.py "content query --uri content://settings/secure --where \"name='enabled_notification_listeners'\""
+tools/tv.py "content insert --uri content://settings/secure --bind name:s:enabled_notification_listeners --bind value:s:com.gathin.tvhome/com.gathin.tvhome.NowPlayingListener"
+```
+
+Check with `dumpsys notification` (the listener should be listed as enabled) and then by playing something.
+Still open: whether Fire OS 5 honours the grant (it ignored the same kind of write for accessibility), and whether
+Amazon's apps publish media sessions. Without the grant the pill just stays hidden.
+
 # Findings
 
 Branch `fire-os5-sdk22`. Tested on a Fire TV Stick 2nd gen (AFTT), Fire OS 5, build LVY48F, Android 5.1.1 / SDK 22, over ADB.
