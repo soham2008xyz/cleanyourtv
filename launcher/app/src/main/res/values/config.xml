@@ -487,10 +487,10 @@
          Fire OS 5 (Android 5.1) has no cmd, and settings put secure silently does nothing there (FIRE-OS-5.md),
          so write enabled_notification_listeners through the content provider instead (content query, then
          content insert, on uri content://settings/secure); FIRE-OS-5.md has the exact commands. The value is a
-         ':'-separated list: anything already in it has to be kept.
+         ':'-separated list: anything already in it has to be kept. Then reboot: Fire OS 5 reads it only at boot.
          Without the grant the pill stays hidden. While this is false the listener stays disabled and nothing
          is read. -->
-    <bool name="now_playing">false</bool>
+    <bool name="now_playing">true</bool>
     <!-- Where the Now Playing line sits: top_bar (a pill among the top buttons, the default) or below_date (a line
          under the clock and date, at the top left). Either way OK on it opens the app that plays; on the line, Up
          goes to the top bar and Down back to the dock. A theme can set "now_playing_position". -->

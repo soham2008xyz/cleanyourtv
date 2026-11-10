@@ -34,23 +34,36 @@ Checked on the stick:
 Costs: the APK is about 944 KB, over upstream's 576 KB gate. Each Home press shows a black screen for about 5 s.
 There is one background service, blocked on reading the log.
 
-## Now Playing (`now_playing`), not yet checked on the stick
+## Now Playing (`now_playing`)
 
 Merged from the `now-playing` branch. The media session APIs are API 21, so only two calls changed:
 `MediaSessionManager` is fetched by name, and the pill's tint is cleared through `Compat.setCompoundTint`.
 It still needs notification access for `NowPlayingListener`. There's no `cmd` on 5.1, and `settings put secure`
 does nothing here, so write the setting through the content provider. With `now_playing` true, let Home come
-up once first, which switches the listener on. Then read the current value and keep anything already in it,
-joined with `:`:
+up once first, which switches the listener on. Then read the current value. The stick has an empty
+`enabled_notification_listeners` row, so update it; anything already in it has to be kept, joined with `:`
+(use `content insert` with the same binds if there's no row at all):
 
 ```bash
 tools/tv.py "content query --uri content://settings/secure --where \"name='enabled_notification_listeners'\""
-tools/tv.py "content insert --uri content://settings/secure --bind name:s:enabled_notification_listeners --bind value:s:com.gathin.tvhome/com.gathin.tvhome.NowPlayingListener"
+tools/tv.py "content update --uri content://settings/secure --bind value:s:com.gathin.tvhome/com.gathin.tvhome.NowPlayingListener --where \"name='enabled_notification_listeners'\""
 ```
 
-Check with `dumpsys notification` (the listener should be listed as enabled) and then by playing something.
-Still open: whether Fire OS 5 honours the grant (it ignored the same kind of write for accessibility), and whether
-Amazon's apps publish media sessions. Without the grant the pill just stays hidden.
+**Then reboot.** Fire OS 5 doesn't pick up the change while running, not even after reinstalling the APK. After a
+reboot, `dumpsys notification` lists the listener as enabled and live, the value survives, and it stays bound
+across later `adb install -r`.
+
+Checked on the AFTT with Spotify (`com.spotify.tv.android`), which publishes a full media session with
+title, artist and artwork:
+- Playing: the pill shows the artwork and "Title · Artist", and follows the next song while Home is open.
+- Up from the dock focuses the pill, and the artwork keeps its colours on the white focused pill.
+- OK opens Spotify at once, as the start comes from the foreground (no five-second hold).
+- Paused in Spotify, then Home: the pill is gone. This needed a fix in `NowPlaying.update`: the first update
+  after `start()` is always sent. Before, a pill left from before Home paused stayed, as nothing playing matched
+  the reset `shown == null`. This affects the `now-playing` branch too.
+- With the pill up, the date next to the clock is cut short ("WEDNESDAY 11 NOVE…").
+
+Amazon's own Alexa media player and the TTS server also have sessions, idle; Prime Video and the others weren't tried.
 
 # Findings
 

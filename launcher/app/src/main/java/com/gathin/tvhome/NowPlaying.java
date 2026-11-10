@@ -47,6 +47,9 @@ final class NowPlaying {
     private boolean started;
     /** The session last handed to the listener (null: nothing), so a state change that keeps it is not sent again. */
     private MediaSession.Token shown;
+    /** False until the first update after start(): that one is always sent, so a pill left from before Home was
+     *  paused goes when nothing plays any more. */
+    private boolean sent;
 
     NowPlaying(Context context, Handler handler, Listener listener) {
         // getSystemService(Class) is API 23.
@@ -63,6 +66,7 @@ final class NowPlaying {
             sessions.addOnActiveSessionsChangedListener(sessionsChanged, access, handler);
             started = true;
             shown = null;
+            sent = false;
             watch(sessions.getActiveSessions(access));
         } catch (SecurityException e) {
             // No notification access: cmd notification allow_listener (config.xml now_playing).
@@ -105,8 +109,9 @@ final class NowPlaying {
         int i = pick(states);
         MediaController playing = i < 0 ? null : watched.get(i);
         MediaSession.Token token = playing == null ? null : playing.getSessionToken();
-        if (!metadataChanged && Objects.equals(token, shown)) return;
+        if (!metadataChanged && sent && Objects.equals(token, shown)) return;
         shown = token;
+        sent = true;
         listener.onNowPlaying(playing);
     }
 
