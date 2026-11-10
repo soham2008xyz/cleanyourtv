@@ -22,7 +22,8 @@ home can't be replaced or disabled. Tested on a Fire TV Stick 2nd gen (AFTT), Fi
   Undo with `adb uninstall com.gathin.tvhome`.
 
 Checked on the stick:
-- Home pressed on the real remote is caught (with the probe).
+- Real remote, confirmed by the person with the launcher installed: Home from an app brings the launcher
+  back, long-press Home is left to Fire OS, and wake from standby works.
 - Injected Home from Settings gives the black cover, then the launcher about 5 s later.
 - `READ_LOGS` survives a reboot.
 - After a cold boot, the launcher takes over by itself about 44 s after `sys.boot_completed`: Fire OS 5 delivers
