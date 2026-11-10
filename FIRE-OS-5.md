@@ -1,4 +1,39 @@
-# Fire OS 5 (Fire TV Stick 2nd gen, AFTT): findings for the SDK 22 launcher port
+# Fire OS 5 fork (Fire TV Stick 2nd gen, AFTT)
+
+The launcher on Fire OS 5 (Android 5.1, SDK 22), which upstream's `minSdk 26` can't install on, and where Amazon's
+home can't be replaced or disabled. Tested on a Fire TV Stick 2nd gen (AFTT), Fire OS 5, build LVY48F.
+
+## What it changes
+
+- **minSdk 22.** It builds on the Fire OS 6 fork by Mohamedkrs (cherry-picked, `ef716924`): desugared `java.time`,
+  static Outfit cuts with `LegacyFonts`, `FireHomeWatcher`, and the `getChangedPackages` / `Files` / hardware
+  bitmap fallbacks. The rest of the API 23-24 calls go through `Compat`. `TintedTextView` keeps the top pills' icon
+  tint, which Android 5 ignores in XML. `BootId` stands in for `BOOT_COUNT` with the kernel's boot id.
+- **Fire OS 5 crash fix.** Fire OS hooks `getSharedPreferences` (`com.fireos.eve`) and calls back into the
+  activity before `attachBaseContext` has run. `LauncherLocale` therefore reads the config through the
+  application context.
+- **Home.** Amazon's accessibility manager won't bind a third-party service, so `HomeKeyService` is out.
+  `FireHomeWatcher` follows the system log (`READ_LOGS`, granted over ADB) for Amazon's home being started by
+  the Home key. On 5.1 Android then holds back **every** start from a background app for 5 s:
+  `AppTask.moveToFront` is "stopped", and an alarm's `PendingIntent` waits too. `HomeCover`, a black
+  `SYSTEM_ALERT_WINDOW` overlay, hides Amazon's home and its ads until the launcher resumes. It also goes
+  on Back or after 8 s, so it can't trap the screen.
+- **Install:** `TV_HOST=<tv ip> launcher/install-fire-os-5.sh`. It disables nothing and changes no Home setting.
+  Undo with `adb uninstall com.gathin.tvhome`.
+
+Checked on the stick:
+- Home pressed on the real remote is caught (with the probe).
+- Injected Home from Settings gives the black cover, then the launcher about 5 s later.
+- `READ_LOGS` survives a reboot.
+- After a cold boot, the launcher takes over by itself about 44 s after `sys.boot_completed`: Fire OS 5 delivers
+  `BOOT_COMPLETED` late, even at priority 999, and Amazon's home shows until then.
+- About 78 MB PSS on the 1 GB stick.
+- Top pills' icon tint follows focus.
+
+Costs: the APK is about 944 KB, over upstream's 576 KB gate. Each Home press shows a black screen for about 5 s.
+There is one background service, blocked on reading the log.
+
+# Findings
 
 Branch `fire-os5-sdk22`. Tested on a Fire TV Stick 2nd gen (AFTT), Fire OS 5, build LVY48F, Android 5.1.1 / SDK 22, over ADB.
 
@@ -92,8 +127,7 @@ nothing about accessibility key filtering, `cmd` or a Home redirect on 5.1, so t
   on that line. With an **injected** `KEYCODE_HOME` from Settings, it ended up resumed over Amazon's home
   (`mResumedActivity … probe.key/.Screen`). `AmazonProfileService.shouldAbortActivityStart()` logged
   "not aborted". This is the same method as the Fire OS 6 fork in SHOWCASE (Mohamedkrs, `READ_LOGS` + boot receiver).
-- Still to confirm: a press of the **real remote's** Home (an injected key isn't proof), a cold boot, and wake
-  from standby.
+- A press of the real remote's Home was confirmed by the person with the probe. Cold boot was checked with the launcher (see above).
 
 ## The Hisense API 22 adapter, in detail
 Drmufeng `adapter/android-5.1`: 2 commits on upstream `22dc48fe` (launcher 2.6, which is old). The approach:
