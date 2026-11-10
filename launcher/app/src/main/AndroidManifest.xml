@@ -26,6 +26,9 @@
     <uses-permission android:name="android.permission.READ_LOGS"
         tools:ignore="ProtectedPermissions" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
+    <!-- Fire OS 5 Home (HomeCover): covers Amazon's home for the five seconds Android holds this launcher back after
+         Home. Granted at install on Android 5; only used there, and only while FireHomeWatcher runs. -->
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
 
     <!-- Android 11+ package visibility: lets the launcher list the TV apps it shows as tiles, and the
          apps that declare a module card (docs/specs/card.md). -->

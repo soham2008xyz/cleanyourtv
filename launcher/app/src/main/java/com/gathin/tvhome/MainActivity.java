@@ -1091,6 +1091,8 @@ public class MainActivity extends Activity implements AppAdapter.TileListener {
     protected void onResume() {
         super.onResume();
         resumed = true;
+        // Fire OS 5: the cover FireHomeWatcher put over Amazon's home while Android held this launcher back.
+        HomeCover.hide();
         // A festival that started or ended while Home was in the background: rebuild with or without it.
         if (festive != festival.active(LocalDate.now())) {
             recreate();

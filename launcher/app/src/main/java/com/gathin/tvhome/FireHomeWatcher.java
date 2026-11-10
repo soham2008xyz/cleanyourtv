@@ -6,7 +6,10 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.os.Build;
+import android.os.Handler;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.SystemClock;
 import android.util.Log;
 
@@ -33,6 +36,7 @@ public class FireHomeWatcher extends Service {
     private static final String AMAZON_HOME = "cmp=com.amazon.tv.launcher/";
     private static final String FROM_SYSTEM = "from uid 1000 ";
 
+    private static final Handler MAIN = new Handler(Looper.getMainLooper());
     private Thread thread;
 
     static void startIfGranted(Context ctx) {
@@ -87,6 +91,10 @@ public class FireHomeWatcher extends Service {
      * so the launcher is up in about half a second; a plain start is the fallback when the task is gone.
      */
     private void bringBack() {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
+            bringBackFromSystem();
+            return;
+        }
         ActivityManager am = (ActivityManager) getSystemService(ACTIVITY_SERVICE);
         for (ActivityManager.AppTask task : am.getAppTasks()) {
             try {
@@ -96,6 +104,17 @@ public class FireHomeWatcher extends Service {
                 Log.w(TAG, "moveToFront failed", e);
             }
         }
+        startActivity(new Intent(this, MainActivity.class)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
+    }
+
+    /**
+     * Android 5 and 6 (Fire OS 5): AppTask.moveToFront is held back after Home too ("Task to front request ...
+     * stopped"), and so is every other start, an alarm's PendingIntent included. Ask for the launcher, which
+     * Android starts when its five seconds are up, and cover Amazon's home until then (HomeCover).
+     */
+    private void bringBackFromSystem() {
+        MAIN.post(() -> HomeCover.show(this));
         startActivity(new Intent(this, MainActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_NO_ANIMATION));
     }

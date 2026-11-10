@@ -25,7 +25,11 @@ final class LauncherLocale {
 
     /** base with the configured language, or base itself when locale is off. */
     static Context wrap(Context base) {
-        Locale locale = parse(Config.load(base).locale);
+        // The application context, not base: Fire OS 5 hooks getSharedPreferences (com.fireos.eve) and calls
+        // getResources() on base's outer context, which is this activity before attachBaseContext has run, so
+        // reading the config through base crashed every activity at start.
+        Context app = base.getApplicationContext();
+        Locale locale = parse(Config.load(app != null ? app : base).locale);
         if (locale == null) return base;
         // Formatters that take no Context (the clock's date, the lunar line) follow the default locale.
         Locale.setDefault(locale);
