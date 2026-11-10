@@ -33,6 +33,7 @@
         <item>com.mitv.gallery</item>
         <item>com.amazon.shoptv.firetv.client</item>
         <item>com.amazon.minitv.android.app</item>
+        <item>com.amazon.bueller.music</item>
     </string-array>
 
     <!-- The TV's Live TV / tuner app, offered at the end of the Inputs menu. Leave empty to omit. -->
