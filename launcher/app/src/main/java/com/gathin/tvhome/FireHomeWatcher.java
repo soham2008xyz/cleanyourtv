@@ -36,7 +36,7 @@ public class FireHomeWatcher extends Service {
     private Thread thread;
 
     static void startIfGranted(Context ctx) {
-        if (ctx.checkSelfPermission(android.Manifest.permission.READ_LOGS) != PackageManager.PERMISSION_GRANTED) return;
+        if (!Compat.granted(ctx, android.Manifest.permission.READ_LOGS)) return;
         ctx.startService(new Intent(ctx, FireHomeWatcher.class));
     }
 
@@ -44,7 +44,7 @@ public class FireHomeWatcher extends Service {
     public static class BootReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context ctx, Intent intent) {
-            if (ctx.checkSelfPermission(android.Manifest.permission.READ_LOGS) != PackageManager.PERMISSION_GRANTED) return;
+            if (!Compat.granted(ctx, android.Manifest.permission.READ_LOGS)) return;
             startIfGranted(ctx);
             ctx.startActivity(new Intent(ctx, MainActivity.class).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK));
         }

@@ -11,8 +11,8 @@ android {
         // Xiaomi: docs/devices/xiaomi-mitv-aetp0-dofus.md (com.ts.launcher).
         // ColorOS TV: docs/devices/oppo-k9-55-oppocnm632.md (com.oneplus.tv.launcher2).
         applicationId providers.gradleProperty('launcherApplicationId').getOrElse('com.gathin.tvhome')
-        // Fire OS 6 fork: 25 (Android 7.1). java.time comes from core library desugaring below.
-        minSdk 25
+        // Fire OS 5 / 6 fork: 22 (Android 5.1). java.time comes from core library desugaring below.
+        minSdk 22
         targetSdk 34
         versionCode 13
         versionName '3.4'

@@ -101,8 +101,7 @@ public class HomeKeyService extends AccessibilityService {
         // The service is directBootAware: Android 11 skips a service that is not while the user is still
         // locked at boot, writes accessibility_enabled=0 and, on TCL G03 firmware, never binds it after the
         // unlock. Config.load reads credential-protected storage, so wait for the unlock before reading it.
-        UserManager users = getSystemService(UserManager.class);
-        if (users.isUserUnlocked()) {
+        if (Compat.userUnlocked(this)) {
             loadConfig();
             return;
         }
@@ -115,7 +114,7 @@ public class HomeKeyService extends AccessibilityService {
         };
         registerReceiver(unlockReceiver, new IntentFilter(Intent.ACTION_USER_UNLOCKED));
         // The unlock may have happened between the check and the registration.
-        if (users.isUserUnlocked()) {
+        if (Compat.userUnlocked(this)) {
             stopWaitingForUnlock();
             loadConfig();
         }
@@ -165,7 +164,7 @@ public class HomeKeyService extends AccessibilityService {
             }
         };
         registerReceiver(standbyExit, new IntentFilter(Intent.ACTION_SCREEN_OFF));
-        PowerManager power = getSystemService(PowerManager.class);
+        PowerManager power = (PowerManager) getSystemService(POWER_SERVICE);
         if (power != null && !power.isInteractive()) leaveForStandby();
     }
 
@@ -396,7 +395,7 @@ public class HomeKeyService extends AccessibilityService {
      *  front comes back and sends a window event, and onAccessibilityEvent covers it only if it is the stock home.
      *  An HDMI input or an app that the TV resumed at boot is left alone. */
     private void probeAtBoot() {
-        int boot = Settings.Global.getInt(getContentResolver(), Settings.Global.BOOT_COUNT, -1);
+        int boot = BootId.current(this);
         SharedPreferences prefs = getSharedPreferences("boot", MODE_PRIVATE);
         if (!firstBindAfterBoot(boot, prefs.getInt("probe_boot", -1), SystemClock.elapsedRealtime())) return;
         prefs.edit().putInt("probe_boot", boot).apply();

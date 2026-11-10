@@ -6,7 +6,6 @@ import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
-import android.provider.Settings;
 
 /** open_on_start_choice: the app Home opens once after each boot, picked in Launcher settings. */
 final class OpenOnStart {
@@ -31,7 +30,7 @@ final class OpenOnStart {
     }
 
     static int boot(Context ctx) {
-        return Settings.Global.getInt(ctx.getContentResolver(), Settings.Global.BOOT_COUNT, -1);
+        return BootId.current(ctx);
     }
 
     /** A pick takes effect from the next boot: the Home that follows the pick stays Home. */
@@ -46,10 +45,11 @@ final class OpenOnStart {
 
     /** Android has reached the internet through the active network (ACCESS_NETWORK_STATE). */
     static boolean online(Context ctx) {
-        ConnectivityManager cm = ctx.getSystemService(ConnectivityManager.class);
+        ConnectivityManager cm = Compat.connectivity(ctx);
+        if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.M) return Compat.activeNetworkConnected(cm);
         Network n = cm != null ? cm.getActiveNetwork() : null;
         NetworkCapabilities caps = n != null ? cm.getNetworkCapabilities(n) : null;
-        return caps != null && caps.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+        return caps != null && Compat.validated(caps);
     }
 
     /** The app's TV entry point, or its phone one; null when it is uninstalled or disabled, so Home stays. */

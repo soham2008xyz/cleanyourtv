@@ -4,6 +4,7 @@ import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.app.Application;
 import android.content.Context;
+import android.content.res.ColorStateList;
 import android.content.res.TypedArray;
 import android.graphics.Typeface;
 import android.os.Build;
@@ -15,7 +16,7 @@ import android.widget.TextClock;
 import android.widget.TextView;
 
 /**
- * Outfit on Android 7 (Fire OS 6). There android:fontFamily="@string/font_*" names a font XML the framework
+ * Outfit on Android 5 to 7 (Fire OS 5 and 6), and the top pills' icon tint on Android 5 (TintedTextView). There android:fontFamily="@string/font_*" names a font XML the framework
  * can't load, so every label would fall back to Roboto. Below Android 8 this factory builds the layouts'
  * TextView and TextClock tags itself and sets the typeface UiFont picks for their fontFamily (from the tag or its
  * style). Other tags, and every view on Android 8 and later, are left to the normal inflater.
@@ -23,6 +24,8 @@ import android.widget.TextView;
 final class LegacyFonts implements LayoutInflater.Factory2 {
 
     private static final int[] FONT_FAMILY = {android.R.attr.fontFamily};
+    @SuppressLint("InlinedApi")   // read by hand below API 23, where the framework skips it
+    private static final int[] DRAWABLE_TINT = {android.R.attr.drawableTint};
 
     /** Installs the factory in every activity, before its setContentView. No-op on Android 8 and later. */
     static void install(Application app) {
@@ -45,9 +48,13 @@ final class LegacyFonts implements LayoutInflater.Factory2 {
     @SuppressLint("ResourceType")   // FONT_FAMILY is a one-attribute styleable built in code
     public View onCreateView(View parent, String name, Context context, AttributeSet attrs) {
         TextView view;
-        if ("TextView".equals(name)) view = new TextView(context, attrs);
-        else if ("TextClock".equals(name)) view = new TextClock(context, attrs);
+        ColorStateList tint = null;
+        if ("TextView".equals(name)) {
+            tint = drawableTint(context, attrs);
+            view = tint != null ? new TintedTextView(context, attrs) : new TextView(context, attrs);
+        } else if ("TextClock".equals(name)) view = new TextClock(context, attrs);
         else return null;
+        if (tint != null) ((TintedTextView) view).setTint(tint);
         TypedArray a = context.obtainStyledAttributes(attrs, FONT_FAMILY);
         int font = a.getResourceId(0, 0);
         a.recycle();
@@ -60,6 +67,16 @@ final class LegacyFonts implements LayoutInflater.Factory2 {
             }
         }
         return view;
+    }
+
+    /** android:drawableTint from the tag or its style, read by hand below Android 6, which ignores it. */
+    @SuppressLint("ResourceType")
+    private static ColorStateList drawableTint(Context context, AttributeSet attrs) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) return null;
+        TypedArray a = context.obtainStyledAttributes(attrs, DRAWABLE_TINT);
+        ColorStateList tint = a.getColorStateList(0);
+        a.recycle();
+        return tint;
     }
 
     @Override
